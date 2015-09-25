@@ -79,7 +79,7 @@ String.prototype.trunc =
 // A future enhancement of this could be re-implementing the project using Angular .
 ////////////////////////////////////////////////////////////////
 
-/*
+
 $(function(){
 
     var Quote = {
@@ -138,11 +138,11 @@ $(function(){
     var View = {
         init: function() {
           console.log("View.init invoked")
-          this.quote = $("#quote")  // change this to View later 
-          this.render(Controller.getQuote()) // change this to View later
+          //this.quote = $("#quote")  // change this to View later 
+          //this.render(Controller.getQuote()) // change this to View later
           
           $(document).ready(function() {                      
-            $('#next_quote').on('click', function() {
+           /* $('#next_quote').on('click', function() {
               if (Controller.quoteIsReady()) {
                 console.log("Path A")
                 View.render( Controller.getQuote() )
@@ -152,7 +152,19 @@ $(function(){
                 console.log("Path B")
                   Controller.setRenderAfterPrefetch(true) // user clicked while fetch in progress
               }
-            })  
+            }) */
+            $('.square').on('click', function() {
+              var test = ['a', 'b', 'c', 'd']
+              $(this).empty(); // referring to the jQuery this object
+              console.log("DRT here")
+              //$('#r1_c1').append(View.template());
+              $(this).append(View.template());
+                console.log( this.id );
+                var id_index = this.id.substring(1,2); // convert element id to index 0-8
+
+                console.log(test[id_index%test.length]) // testing
+
+            }) 
           }) // document.ready
         },      
         render: function(obj) { 
@@ -163,10 +175,10 @@ $(function(){
         // this should be private, not sure how
         template: function(obj) {
           var template = "";
-          template += "<blockquote>"
-          template += "<p>"+obj.text+"</p>"
-          template += "<footer class='pull-right'>"+obj.author+"</footer>"
-          template += "</blockquote>"
+          template += "<div class='content'>"
+          template +=   "<img src='images/aa6e8d0ba1ee3a0fea3df7c7d5b00f6b.jpg'>"
+          template += "</div>"
+          console.log(template)
           return template
         }            
     };
@@ -207,15 +219,14 @@ $(function(){
          View.render( Quote.get() )
        },      
        init: function() {                
-         Quote.init()
-         Controller.setQuoteIsReady(false);
-         QuoteService.init()         
+         //Quote.init()
+         //Controller.setQuoteIsReady(false);
+         //QuoteService.init()         
          View.init()
-         Controller.setRenderAfterPrefetch(true);
-         Controller.getQuoteFromService(0)
+         //Controller.setRenderAfterPrefetch(true);
+         //Controller.getQuoteFromService(0)
        }
     };
 
     Controller.init();
 });
-*/
