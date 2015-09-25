@@ -82,58 +82,39 @@ String.prototype.trunc =
 
 $(function(){
 
-    var Quote = {
+    var Board = {
         init: function() {
-          this.text   = "Patience is a virtue especially as you wait for the first quote to load."
-          this.author = "David R. Taylor"
-          console.log("Quote.init invoked")                    
+          this.board           = ["", "", "", "", "", "", "", "", ""] // [0] -> top_left, [8] -> bottom_right
+          this.occupied_spaces = 0
+          console.log("Board.init invoked")                    
         },
-        set: function(obj) {
-          this.text   = obj.text
-          this.author = obj.author 
-          console.log("Quote.set invoked with "+obj.text+", "+obj.author)
+        is_winner: function(color) {
+          console.log("Board.is_winner invoked")
+          return false; // testing
         },
-        get: function() {
-          return { 
-                   text:   this.text,
-                   author: this.author
-                 }            
+        mark: function(index, color) {
+          console.log("Board.mark invoked with "+index+", "+color)
+          if (this.is_valid(index,color)) {
+            this.set_cell(index, color)
+            this.occupied_spaces += 1
+            return true
+          }
+          return false
+        },
+        is_valid: function(index,color) {
+          return this.is_cell(index,"")
+        },
+        set_cell: function(index,color) {
+          this.board[index] = color
+        },
+        get_cell: function(index) {
+          return this.board[index]
+        },
+        is_cell: function(index,value) {
+          return this.get_cell(index) === value
         }
     };
 
-    var QuoteService = {
-        init: function() {
-           console.log("Quote_api.init invoked")
-           this.quotes_url  = "http://www.stands4.com/services/v2/quotes.php"
-           this.uid         = "?uid=4156"
-           this.token_id    = "&tokenid=fJnvuOhrmejqNqUs"
-           this.search_type = "&searchtype=RANDOM"
-        },      
-        get: function(callback) { //delayed therefore callback given           
-           var quote = {};
-           console.log("QuoteService.get invoked")
-           $.ajax({
-             type: "GET",
-             url: this.quotes_url+this.uid+this.token_id+this.search_type,
-             dataType: "xml",
-             success: function(xml) {
-               console.log("xml received")
-               var error    = $(xml).find('error').text();
-               if (error === "Daily Usage Exceeded") {
-                 quote.text     = "Sorry, "+error;
-                 quote.author   = "quotes.net"
-               } else {
-                 quote.text     = $(xml).find('quote').text();
-                 quote.author   = $(xml).find('author').text();
-               }               
-               callback(quote); // this callback do with quote - setQuote and render             
-               },
-             error: function() {
-               alert("The XML File could not be processed correctly.");
-             }
-           });            
-        }      
-    };
 
     var View = {
         init: function() {
@@ -154,72 +135,65 @@ $(function(){
               }
             }) */
             $('.square').on('click', function() {
-              var test = ['a', 'b', 'c', 'd']
-              $(this).empty(); // referring to the jQuery this object
-              console.log("DRT here")
-              //$('#r1_c1').append(View.template());
-              $(this).append(View.template());
-                console.log( this.id );
-                var id_index = this.id.substring(1,2); // convert element id to index 0-8
 
-                console.log(test[id_index%test.length]) // testing
+              var id_index = this.id.substring(1,2)
+              // call GameController.mark with this and id_index
+              // id_index could be extracted from this, but i think this is a view concern
+              //View.renderSquare(this)              
+              GameController.mark(this,id_index)
 
             }) 
           }) // document.ready
+        },
+        clear: function() {
+          var grids = $('.square');
+          console.log("grids")
+          console.log(grids)
         },      
-        render: function(obj) { 
+        renderSquare: function(e,attr,image) { 
           console.log("render invoked")
-          this.quote.empty();
-          this.quote.append(this.template( obj ));          
+          var test = ['a', 'b', 'c', 'd']
+              
+          $(e).empty(); // referring to the jQuery this object
+          console.log("DRT here")
+          $(e).append(View.template(attr,image));
+          var id_index = e.id.substring(1,2) // just for testing
+          console.log( e.id );
+          console.log(test[id_index%test.length]) // testing        
         },
         // this should be private, not sure how
-        template: function(obj) {
+        // if image is not given, then it will be an empty square returned
+        template: function(attr,image) {
           var template = "";
           template += "<div class='content'>"
-          template +=   "<img src='images/aa6e8d0ba1ee3a0fea3df7c7d5b00f6b.jpg'>"
+          if (image) { template +=   "<img "+attr+" src='"+image+"'>" }
           template += "</div>"
           console.log(template)
           return template
         }            
     };
 
-    var Controller = {
-        setQuote: function(quote) {
-            Quote.set(quote)
-            Controller.setQuoteIsReady(true)
+    var Game = {
+       current_player: function() {
+          return this.pieces[this.current_player_index]
         },
-        getQuote: function() { 
-          return Quote.get()   
-        },
-        getQuoteFromService: function(depth) { 
-          console.log("recur: "+depth)
-          Controller.setQuoteIsReady(false)
-          QuoteService.get(function(quote) { 
-            Controller.setQuote(quote)
-            if ( Controller.renderAfterPrefetch() ) {
-              Controller.render();
-              Controller.setRenderAfterPrefetch(false)
-              if (depth<1) Controller.getQuoteFromService(depth+1)
-            }
-          });  
+       current_image: function() {
+          return this.images[this.current_player_index]
        },
-       setRenderAfterPrefetch: function(true_or_false) {
-         this.render_after_prefetch = true_or_false
-       },  
-       renderAfterPrefetch: function() {
-         return(this.render_after_prefetch)
-       },          
-       setQuoteIsReady: function(true_or_false) {
-         this.quote_is_ready = true_or_false
+       current_attr: function() {
+          return this.attr[this.current_player_index]
        },
-       quoteIsReady: function() {
-         return(this.quote_is_ready)
-       },
-       render: function() {
-         View.render( Quote.get() )
+       next_player: function() {
+         this.current_player_index = (this.current_player_index + 1) % 2
        },      
-       init: function() {                
-         //Quote.init()
+       init: function() { 
+         this.pieces = ["B", "J"] // Batman, Joker
+         // not sure if I should be storing image and attr inside of game. more of a view thing unless it 
+         // can be changed, selected by the user
+         this.images = ["images/batman_logo_final.png", "images/aa6e8d0ba1ee3a0fea3df7c7d5b00f6b.jpg"]
+         this.attr   = ["class='circle'", ""] // batman is a circle, jocker is a square
+         this.current_player_index = 0
+         Board.init()
          //Controller.setQuoteIsReady(false);
          //QuoteService.init()         
          View.init()
@@ -228,5 +202,32 @@ $(function(){
        }
     };
 
-    Controller.init();
+    var GameController = {
+        mark: function(e, index) {
+          if (Board.mark(index, Game.current_player())) {
+            View.renderSquare(e, Game.current_attr(), Game.current_image())
+            Game.next_player()
+            // Checkforwinner()
+            console.log("Here")
+          }
+          else {   // WHY IS THIS BEING CALLED??????????????????
+            console.log("Not here")
+            View.clear()
+          }
+        },
+       /*render: function() {
+         View.render( Quote.get() )
+       },*/      
+       init: function() { 
+         Game.init()
+         Board.init()
+         //Controller.setQuoteIsReady(false);
+         //QuoteService.init()         
+         View.init()
+         //Controller.setRenderAfterPrefetch(true);
+         //Controller.getQuoteFromService(0)
+       }
+    };
+
+    GameController.init();
 });
