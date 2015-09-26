@@ -1,69 +1,7 @@
 console.log("app is up")
 
-// Following handles the button clicking and enabling/disabling the tab-pane
 
-$(document).ready(function() {
-
-	console.log("document is ready")
-
-	// change temp display state and render weather if user clicks
-	$('#button1').on('click', function(event) {
-	  event.preventDefault(); // prevents page scrolling upon click          
-      console.log("button1 clicked")
-      // remove my-active from all associated my-tab-panes
-      // this is a make it work method, but not extensible
-      // if the my-tab-pane is to be used for other panes.
-      // Since there is no need, we can simply use this.
-      $('.my-tab-pane').removeClass('my-active')
-
-      // add my-active to the associated my-tab-pane
-      $('#tab-button1').addClass('my-active')
-
-	}); 
-
-	$('#button2').on('click', function(event) {
-	  event.preventDefault(); // prevents page scrolling upon click          
-      console.log("button2 clicked")
-      // remove my-active from all associated my-tab-panes
-      $('.my-tab-pane').removeClass('my-active')
-
-      // add my-active to the associated my-tab-pane
-      $('#tab-button2').addClass('my-active')
-
-	}); 
-
-
-	$('#button3').on('click', function(event) {
-	  event.preventDefault(); // prevents page scrolling upon click          
-      console.log("button3 clicked")
-      // remove my-active from all associated my-tab-panes
-      $('.my-tab-pane').removeClass('my-active')
-
-      // add my-active to the associated my-tab-pane
-      $('#tab-button3').addClass('my-active')
-
-	}); 	
-
-}) // document ready
-
-// String truncation method added to String type
-// http://stackoverflow.com/questions/1199352/smart-way-to-shorten-long-strings-with-javascript
-String.prototype.trunc =
-     function(n,useWordBoundary){
-         var tooLong = this.length>n,
-             s_ = tooLong ? this.substr(0,n-1) : this;
-         s_ = useWordBoundary && tooLong ? s_.substr(0,s_.lastIndexOf(' ')) : s_;
-         return  tooLong ? s_ + '&hellip;' : s_;
-      };
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-///////////////////////////////////////////////////////////////////////////////////
-//
-
-////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////
 
 
 $(function(){
