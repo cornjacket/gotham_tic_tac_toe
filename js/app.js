@@ -62,21 +62,7 @@ String.prototype.trunc =
 
 ///////////////////////////////////////////////////////////////////////////////////
 //
-// I noticed that the ajax get request for XML data is rather slow for the user.
-// Upon initial page display the script will perform the ajax get request for the 
-// first and next quote prior to the user clicking the mouse, thereby doing
-// a pre-fetch. When the user clicks the mouse, the pre-fetched quote will be displayed immediately
-// and the next quote will be pre-fetched. It is expected that during the time the user
-// is reading the current quote, that the pre-fetch will complete. This will have a
-// better UX.
-//
-// This is my third draft of this project.
-// This project uses Twitter bootstrap and jQuery's ajax().
-// The program is separated into 4 modules: View, Quote (model), Quote API, and 
-// QuoteController.
-// This implementation of MVC requires the View and Model to use methods internal to
-// the QuoteController. This version implements prefetch.
-// A future enhancement of this could be re-implementing the project using Angular .
+
 ////////////////////////////////////////////////////////////////
 
 
@@ -90,28 +76,70 @@ $(function(){
         },
         is_winner: function(color) {
           console.log("Board.is_winner invoked")
-          return false; // testing
+          var row;
+          var col;
+          var match;
+          // check rows
+          for (row=0; row<3; row+=1) {
+            match = true;
+            for (col=0; col<3; col+=1) {
+              if (this.is_not_equal(row*3+col,color)) { match = false }
+            }
+            if (match) { return true }
+          }
+          // check cols
+          for (col=0; col<3; col+=1) {
+            match = true;
+            for (row=0; row<3; row+=1) {
+              if (this.is_not_equal(row*3+col,color)) { match = false }
+            }
+            if (match) { return true }
+          }
+          // check downward diagonal
+          match = true;
+          for (row=0; row<3; row+=1) {
+            col=row;
+            if (this.is_not_equal(row*3+col,color)) { match = false }
+          }
+          if (match) { return true }
+          // check upward diagonal
+          match = true;
+          for (row=0; row<3; row+=1) {
+            col=2-row;
+            if (this.is_not_equal(row*3+col,color)) { match = false }
+          }
+          if (match) { return true }    
+          return false;
+        },
+        is_full: function() {
+          if (this.occupied_spaces >= 9) { return true }
+          return false;
         },
         mark: function(index, color) {
           console.log("Board.mark invoked with "+index+", "+color)
-          if (this.is_valid(index,color)) {
+          console.log(this.board);
+          if (this.is_valid(index)) {
             this.set_cell(index, color)
             this.occupied_spaces += 1
             return true
           }
           return false
         },
-        is_valid: function(index,color) {
-          return this.is_cell(index,"")
+        is_valid: function(index) {
+          return this.is_equal(index,"")
         },
         set_cell: function(index,color) {
           this.board[index] = color
+          console.log(this.board)
         },
         get_cell: function(index) {
           return this.board[index]
         },
-        is_cell: function(index,value) {
+        is_equal: function(index,value) {
           return this.get_cell(index) === value
+        },
+        is_not_equal: function(index,value) {
+          return !this.is_equal(index,value)
         }
     };
 
@@ -134,7 +162,8 @@ $(function(){
                   Controller.setRenderAfterPrefetch(true) // user clicked while fetch in progress
               }
             }) */
-            $('.square').on('click', function() {
+            // .off().on() was required to fix double event problem
+            $('.square').off('click').on('click', function() {
 
               var id_index = this.id.substring(1,2)
               // call GameController.mark with this and id_index
@@ -148,18 +177,12 @@ $(function(){
         clear: function() {
           var grids = $('.square');
           console.log("grids")
-          console.log(grids)
+          console.log(grids) // this shouldnt be called for just one click event
         },      
-        renderSquare: function(e,attr,image) { 
-          console.log("render invoked")
-          var test = ['a', 'b', 'c', 'd']
-              
+        render_square: function(e,attr,image) { 
+          console.log("render invoked")              
           $(e).empty(); // referring to the jQuery this object
-          console.log("DRT here")
           $(e).append(View.template(attr,image));
-          var id_index = e.id.substring(1,2) // just for testing
-          console.log( e.id );
-          console.log(test[id_index%test.length]) // testing        
         },
         // this should be private, not sure how
         // if image is not given, then it will be an empty square returned
@@ -204,28 +227,34 @@ $(function(){
 
     var GameController = {
         mark: function(e, index) {
-          if (Board.mark(index, Game.current_player())) {
-            View.renderSquare(e, Game.current_attr(), Game.current_image())
-            Game.next_player()
-            // Checkforwinner()
+          console.log("GameController.mark invoked")
+          var current_player = Game.current_player()
+          var player_wins = false
+          var draw        = false
+          if (Board.mark(index, current_player) ) {
+            View.render_square(e, Game.current_attr(), Game.current_image())
+            if (Board.is_winner(current_player)) {
+              console.log(current_player+" wins")
+              player_wins = true;
+              // alert message
+            } else if (Board.is_full()) {
+                console.log("Draw")
+                draw = true
+                // alert message
+            } else {
+                Game.next_player()
+            }
+            if (player_wins || draw) {
+              GameController.init()
+              View.clear()
+            }
             console.log("Here")
           }
-          else {   // WHY IS THIS BEING CALLED??????????????????
-            console.log("Not here")
-            View.clear()
-          }
         },
-       /*render: function() {
-         View.render( Quote.get() )
-       },*/      
        init: function() { 
          Game.init()
          Board.init()
-         //Controller.setQuoteIsReady(false);
-         //QuoteService.init()         
          View.init()
-         //Controller.setRenderAfterPrefetch(true);
-         //Controller.getQuoteFromService(0)
        }
     };
 
