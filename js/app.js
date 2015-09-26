@@ -74,41 +74,56 @@ $(function(){
           this.occupied_spaces = 0
           console.log("Board.init invoked")                    
         },
+        // have is_winner return either false or else an array of the winning indices, this array is truthy
         is_winner: function(color) {
           console.log("Board.is_winner invoked")
           var row;
           var col;
           var match;
+          var indices;
+
+          var offset = function(row, col) { return row*3+col }  
+
           // check rows
           for (row=0; row<3; row+=1) {
             match = true;
+            indices = []
             for (col=0; col<3; col+=1) {
-              if (this.is_not_equal(row*3+col,color)) { match = false }
+              index = offset(row,col)
+              if (this.is_not_equal(index,color)) { match = false }
+              else indices.push(index)
             }
-            if (match) { return true }
+            if (match) { return indices } //true }
           }
           // check cols
           for (col=0; col<3; col+=1) {
             match = true;
+            indices = []
             for (row=0; row<3; row+=1) {
-              if (this.is_not_equal(row*3+col,color)) { match = false }
+              index = offset(row,col)
+              if (this.is_not_equal(index,color)) { match = false }
+              else indices.push(index)
             }
-            if (match) { return true }
+            if (match) { return indices } //true }
           }
           // check downward diagonal
           match = true;
+          indices = [0, 4, 8]
           for (row=0; row<3; row+=1) {
             col=row;
-            if (this.is_not_equal(row*3+col,color)) { match = false }
+            index = offset(row,col)
+            if (this.is_not_equal(index,color)) { match = false }
           }
-          if (match) { return true }
+          if (match) { return indices } //true }
           // check upward diagonal
           match = true;
+          indices = [ 6, 4, 2]
           for (row=0; row<3; row+=1) {
             col=2-row;
-            if (this.is_not_equal(row*3+col,color)) { match = false }
+            index = offset(row,col)
+            if (this.is_not_equal(index,color)) { match = false }
           }
-          if (match) { return true }    
+          if (match) { return indices } //true }    
           return false;
         },
         is_full: function() {
@@ -140,29 +155,19 @@ $(function(){
         },
         is_not_equal: function(index,value) {
           return !this.is_equal(index,value)
-        }
+        }      
     };
 
 
     var View = {
         init: function() {
           console.log("View.init invoked")
+          this.is_first_time = true
           //this.quote = $("#quote")  // change this to View later 
           //this.render(Controller.getQuote()) // change this to View later
           
           $(document).ready(function() {                      
-           /* $('#next_quote').on('click', function() {
-              if (Controller.quoteIsReady()) {
-                console.log("Path A")
-                View.render( Controller.getQuote() )
-                Controller.getQuoteFromService(0)
-                Controller.setRenderAfterPrefetch(false)
-              } else {
-                console.log("Path B")
-                  Controller.setRenderAfterPrefetch(true) // user clicked while fetch in progress
-              }
-            }) */
-            // .off().on() was required to fix double event problem
+
             $('.square').off('click').on('click', function() {
 
               var id_index = this.id.substring(1,2)
@@ -172,8 +177,8 @@ $(function(){
               GameController.mark(this,id_index)
 
             }) 
-            alert("Batman goes first!!")
-            console.log("ALERT")
+            if (this.is_first_time) { alert("Batman goes first!!") }
+            this.is_first_time = false
           }) // document.ready
         },
         clear: function() {
@@ -185,6 +190,15 @@ $(function(){
           console.log("render invoked")              
           $(e).empty(); // referring to the jQuery this object
           $(e).append(View.template(attr,image));
+        },
+        render_winner: function(winner_ary) {
+          // render winner indices by fading others
+          [0,1,2,3,4,5,6,7,8].forEach( function(index) {
+            if (winner_ary.indexOf(index) === -1) {
+              console.log("DRT "+index)
+              $("#e"+index+" div").addClass("fade")
+            }
+          })
         },
         // this should be private, not sure how
         // if image is not given, then it will be an empty square returned
@@ -232,16 +246,20 @@ $(function(){
         var current_player = Game.current_player()
         var player_wins = false
         var draw        = false
+        var winner
         if (Board.mark(index, current_player) ) {
           View.render_square(e, Game.current_attr(), Game.current_image())
-          if (Board.is_winner(current_player)) {
+          winner = Board.is_winner(current_player)
+          if (winner) {
             console.log(current_player+" wins")
+            console.log(winner)
             player_wins = true;
-            // alert message
+            View.render_winner(winner)
+            alert(current_player+" wins. Click OK to begin a new game.")
           } else if (Board.is_full()) {
               console.log("Draw")
               draw = true
-              // alert message
+              alert("The game is a draw. Click OK to begin a new game")
           } else {
               Game.next_player()
           }

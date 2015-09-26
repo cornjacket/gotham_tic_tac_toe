@@ -59,6 +59,10 @@ body {
   }
 
 
+  .fade, .fade:hover {
+    background-color: rgba(23,23,23,.7);
+  }
+
 
 
 .circle {
