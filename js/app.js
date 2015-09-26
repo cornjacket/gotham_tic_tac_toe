@@ -172,6 +172,8 @@ $(function(){
               GameController.mark(this,id_index)
 
             }) 
+            alert("Batman goes first!!")
+            console.log("ALERT")
           }) // document.ready
         },
         clear: function() {
@@ -219,43 +221,42 @@ $(function(){
          Board.init()
          //Controller.setQuoteIsReady(false);
          //QuoteService.init()         
-         View.init()
          //Controller.setRenderAfterPrefetch(true);
          //Controller.getQuoteFromService(0)
        }
     };
 
     var GameController = {
-        mark: function(e, index) {
-          console.log("GameController.mark invoked")
-          var current_player = Game.current_player()
-          var player_wins = false
-          var draw        = false
-          if (Board.mark(index, current_player) ) {
-            View.render_square(e, Game.current_attr(), Game.current_image())
-            if (Board.is_winner(current_player)) {
-              console.log(current_player+" wins")
-              player_wins = true;
+      mark: function(e, index) {
+        console.log("GameController.mark invoked")
+        var current_player = Game.current_player()
+        var player_wins = false
+        var draw        = false
+        if (Board.mark(index, current_player) ) {
+          View.render_square(e, Game.current_attr(), Game.current_image())
+          if (Board.is_winner(current_player)) {
+            console.log(current_player+" wins")
+            player_wins = true;
+            // alert message
+          } else if (Board.is_full()) {
+              console.log("Draw")
+              draw = true
               // alert message
-            } else if (Board.is_full()) {
-                console.log("Draw")
-                draw = true
-                // alert message
-            } else {
-                Game.next_player()
-            }
-            if (player_wins || draw) {
-              GameController.init()
-              View.clear()
-            }
-            console.log("Here")
+          } else {
+              Game.next_player()
           }
-        },
-       init: function() { 
-         Game.init()
-         Board.init()
-         View.init()
-       }
+          if (player_wins || draw) {
+            GameController.init()
+            View.clear()
+          }
+          console.log("Here")
+        }
+      },
+      init: function() { 
+        Game.init()
+        Board.init()
+        View.init()
+      }
     };
 
     GameController.init();
