@@ -19,7 +19,7 @@ body {
 }
 
 
-  .square_container {
+  #game_board {
     padding-top: 50px;
     width: 70%;
     margin: auto;
@@ -70,7 +70,7 @@ body {
 }
 
 div.content img {
-  height: 80%;
+  height: 70%;
   
 }
 
@@ -86,8 +86,8 @@ div.content img {
     margin: 0; /* this prevented needless scrolling */
   }
 
-  .square_container {
-    width: 50%;
+  #game_board {
+    width: 40%; /*50%;*/
     margin: auto;
   }  
 
@@ -101,7 +101,7 @@ div.content img {
     margin: 0; /* this prevented needless scrolling */
   }
 
-  .square_container {
+  #game_board {
     width: 48%;
     margin: auto;
   }  
