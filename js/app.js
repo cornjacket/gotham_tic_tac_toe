@@ -6,6 +6,7 @@ console.log("app is up")
 
 $(function(){
 
+
     var Board = {
         
         init: function() {
@@ -22,16 +23,16 @@ $(function(){
           var match;
           var indices;
 
-          var offset = function(row, col) { return row*3+col }  
+          //var offset = function(row, col) { return row*3+col }  
 
           // check rows
           for (row=0; row<3; row+=1) {
             match = true;
             indices = []
             for (col=0; col<3; col+=1) {
-              index = offset(row,col)
-              if (this.is_not_equal(index,color)) { match = false }
-              else indices.push(index)
+              //index = offset(row,col)
+              if (this.is_not_equal(row,col,color)) { match = false }
+              else indices.push({row: row, column: col})
             }
             if (match) { return indices } //true }
           }
@@ -40,28 +41,30 @@ $(function(){
             match = true;
             indices = []
             for (row=0; row<3; row+=1) {
-              index = offset(row,col)
-              if (this.is_not_equal(index,color)) { match = false }
-              else indices.push(index)
+              //index = offset(row,col)
+              if (this.is_not_equal(row,col,color)) { match = false }
+              else indices.push({row: row, column: col})
             }
             if (match) { return indices } //true }
           }
           // check downward diagonal
           match = true;
-          indices = [0, 4, 8]
+          indices = []
           for (row=0; row<3; row+=1) {
             col=row;
-            index = offset(row,col)
-            if (this.is_not_equal(index,color)) { match = false }
+            //index = offset(row,col)
+            if (this.is_not_equal(row,col,color)) { match = false }
+            else indices.push({row: row, column: col})
           }
           if (match) { return indices } //true }
           // check upward diagonal
           match = true;
-          indices = [ 6, 4, 2]
+          indices = []
           for (row=0; row<3; row+=1) {
             col=2-row;
-            index = offset(row,col)
-            if (this.is_not_equal(index,color)) { match = false }
+            //index = offset(row,col)
+            if (this.is_not_equal(row,col,color)) { match = false }
+            else indices.push({row: row, column: col})
           }
           if (match) { return indices } //true }    
           return false;
@@ -72,36 +75,59 @@ $(function(){
           return false;
         },
         
-        mark: function(index, color) {
-          console.log("Board.mark invoked with "+index+", "+color)
+        mark: function(row, column, color) {
+          console.log("Board.mark invoked with "+row+", "+column+", "+color)
           console.log(this.board);
-          if (this.is_valid(index)) {
-            this.set_cell(index, color)
+          //if (this.is_valid(index)) {
+          if (this.is_valid(row, column)) {
+            //this.set_cell(index, color)
+            console.log("this.is_valid")
+            this.set_cell(row, column, color)
             this.occupied_spaces += 1
             return true
           }
           return false
         },
         
-        is_valid: function(index) {
-          return this.is_equal(index,"")
+        is_valid: function(row, column) {
+          return this.is_equal(row, column, "")
         },
         
-        set_cell: function(index,color) {
+        //
+        set_cell: function(row, column, color) {
+          var index = Number(row)*3 + Number(column)
+          console.log("set_cell: index = "+index)
           this.board[index] = color
           console.log(this.board)
         },
         
-        get_cell: function(index) {
+        get_cell: function(row, column) {
+          var index = Number(row)*3 + Number(column)
+          console.log("get_cell: index = "+index)
           return this.board[index]
         },
         
-        is_equal: function(index,value) {
-          return this.get_cell(index) === value
+        is_equal: function(row, column, value) {
+          return this.get_cell(row, column) === value
         },
         
-        is_not_equal: function(index,value) {
-          return this.get_cell(index) !== value
+        is_not_equal: function(row, column, value) {
+          return this.get_cell(row, column) !== value
+        },
+
+        index2_row_col: function(index) {   // should this be private inside all_squares
+          return {
+            row:    Math.floor(index / 3),
+            column: (index % 3)
+          }
+        },
+
+        all_squares: function() {
+
+// private function DRT
+          return [0,1,2,3,4,5,6,7,8].map(function(index) {
+            return Board.index2_row_col(index)
+          })
         }      
     };
 
@@ -124,9 +150,9 @@ $(function(){
 
         reset: function() {
 
-          var template = function(index) {
+          var template = function(row,column) { //row,column) {
             var html_template = ""
-            html_template += "<div id='e"+index+"' class='square'>"
+            html_template += "<div id='r"+row+"_c"+column+"' class='square'>"
             html_template += "  <div class='content'>"
             html_template += "  </div>"
             html_template += "</div>"
@@ -137,16 +163,19 @@ $(function(){
           // prior to setting up the click handler. I believe there is another way to accomplish this.
           var game_board = $('#game_board');
           game_board.empty()
-          this.forEach_square(function (elem) {
-            game_board.append(template(elem))
+          GameController.all_squares().forEach(function(elem) {
+          //this.forEach_square(function (elem) {
+            game_board.append(template(elem.row,elem.column))
           })
           console.log("game_board")          
           console.log(game_board)
           $(document).ready(function() {                            
             $('.square').off('click').on('click', function() {
-              // id_index could be extracted from jQuery object 'this' downstream, but i think this is a view concern  
-              var id_index = this.id.substring(1,2)        
-              GameController.mark(this,id_index)
+              // id_row and col could be extracted from jQuery object 'this' downstream, but i think this is a view concern  
+              var id_row = this.id.substring(1,2) // r0_c0
+              var id_col = this.id.substring(4,5) // 01234       
+              //var id_index = this.id.substring(1,2)        
+              GameController.mark(this,id_row,id_col)
             })                     
           }) // document.ready 
 
@@ -154,6 +183,9 @@ $(function(){
             console.log("this is first time = "+this.is_first_time)  
             this.is_first_time = false
             console.log("this is first time = "+this.is_first_time)
+
+          //console.log("DRT 9/27/15")
+          //console.log(GameController.all_squares())
         },  
 
         render_square: function(e,attr,image) { 
@@ -173,11 +205,25 @@ $(function(){
         },
 
         render_winner: function(winner_ary) {
-          // render winner indices by fading others
-          this.forEach_square( function(elem) {
-            if(winner_ary.indexOf(elem) === -1) {
-              $("#e"+elem+" div").addClass("fade")
-          }
+
+          // Array.prototype.indexOf does not work with objects so we use this deep indexOf
+          //http://stackoverflow.com/questions/8668174/indexof-method-in-an-object-array
+          function arrayObjIndexOf(ary, elem) {
+            for(var i = 0, len = ary.length; i < len; i++) {
+              if (ary[i].row === elem.row && ary[i].column === elem.column) return i;
+            }
+            return -1;
+           }
+
+          // render winner squares by fading others
+          x = GameController.all_squares().filter(function(elem) {
+            console.log(elem)
+            return arrayObjIndexOf(winner_ary,elem) === -1
+          })
+          console.log("DRT 9.27.15")
+          console.log(x)
+          x.forEach( function(elem) {
+              $("#r"+elem.row+"_c"+elem.column+" div").addClass("fade")
           })
         }
              
@@ -214,13 +260,19 @@ $(function(){
 
     var GameController = {
       
-      mark: function(e, index) {
+      all_squares: function() {
+        return Board.all_squares()
+      },
+
+      //mark: function(e, index) {
+      mark: function(e, row, column) {
         console.log("GameController.mark invoked")
         var current_player = Game.current_player()
         var player_wins = false
         var draw        = false
         var winner
-        if (Board.mark(index, current_player) ) {
+        //if (Board.mark(index, current_player) ) {
+        if (Board.mark(row, column, current_player) ) {
           View.render_square(e, Game.current_attr(), Game.current_image())
           winner = Board.is_winner(current_player)
           if (winner) {
@@ -240,7 +292,6 @@ $(function(){
             Game.init()
             Board.init()
             View.reset()
-            //GameController.init()            
           }
           console.log("Here")
         }
