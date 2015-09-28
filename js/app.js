@@ -6,6 +6,16 @@ console.log("app is up")
 
 $(function(){
 
+    var Opponent = {
+
+        choose_square: function(ai_squares, human_squares, open_squares) {
+          return { 
+            row: 0, column: 0 
+          }
+        }
+
+    }
+
 
     var Board = {
         
@@ -94,7 +104,7 @@ $(function(){
         
         get_cell: function(row, column) {
           var index = Number(row)*3 + Number(column)
-          console.log("get_cell: index = "+index)
+          //console.log("get_cell: index = "+index)
           return this.board[index]
         },
         
@@ -108,7 +118,7 @@ $(function(){
 
         all_squares: function() {
 
-          function index2_row_col(index) {
+          function index2_row_col(index) {  // DRT - now should be shared
             return {
             row:    Math.floor(index / 3),
             column: (index % 3)
@@ -118,7 +128,27 @@ $(function(){
           return [0,1,2,3,4,5,6,7,8].map(function(index) {
             return index2_row_col(index)
           })
-        }      
+        },      
+
+        get: function(color) {
+
+          function index2_row_col(index) { // DRT now should be shared
+            return {
+            row:    Math.floor(index / 3),
+            column: (index % 3)
+            }
+          }
+
+          var x = this.all_squares().filter(function(elem) {
+            return Board.is_equal(elem.row,elem.column,color)
+          })
+          console.log("DRT 9.27.15")
+          console.log(x)
+
+
+          return x
+
+        }
     };
 
 
@@ -183,6 +213,8 @@ $(function(){
 
           // Array.prototype.indexOf does not work with objects so we use this deep indexOf
           // http://stackoverflow.com/questions/8668174/indexof-method-in-an-object-array
+ 
+// I might need to share this function inside opponent DRT
           function arrayObjIndexOf(ary, elem) {
             for(var i = 0, len = ary.length; i < len; i++) {
               if (ary[i].row === elem.row && ary[i].column === elem.column) return i;
@@ -247,7 +279,7 @@ $(function(){
           View.render_square(e, Game.current_attr(), Game.current_image())
           winner = Board.is_winner(current_player)
           if (winner) {
-            console.log(winner)
+            //console.log(winner)
             player_wins = true;
             View.render_winner(winner)
             alert(current_player+" wins. Click OK to begin a new game.")
@@ -255,20 +287,35 @@ $(function(){
               draw = true
               alert("The game is a draw. Click OK to begin a new game")
           } else {
-              Game.next_player()
+              if (this.two_player_game) { Game.next_player() }
           }
           if (player_wins || draw) {
             Game.init()
             Board.init()
             View.reset()
           }
+          // check for 1 player game and if so then AI's moves
+          this.opponent_mark(this.get_board("Joker"),this.get_board("Batman"),this.get_board(""))
         }
+        //this.get_board("Joker")
+        //this.get_board("Batman")
+        //this.get_board("")
+      },
+
+      get_board: function(color) {
+        return Board.get(color)
       },
       
+      opponent_mark: function(ai_squares, human_squares, open_squares) {
+        var move = Opponent.choose_square(ai_squares, human_squares, open_squares)
+        console.log("Opponent row = "+move.row+"column ="+move.column)
+      },
+
       init: function() { 
         Game.init()
         Board.init()
         View.init()
+        this.two_player_game = true; // change to false for AI
       }
     };
 
