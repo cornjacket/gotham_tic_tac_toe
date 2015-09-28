@@ -8,7 +8,24 @@ $(function(){
 
     var Opponent = {
 
-        choose_square: function(ai_squares, human_squares, open_squares) {
+        choose_square: function() {
+          
+// If I could somehow use a constructor to build a new Board for each open space and then iterate through
+// each board and check if_winner, then it could be really simple. like my Ruby chess game
+
+// I could do the above with the AI piece to check for the win.
+// I could do the above with the human piece to check for a block.
+
+// can I call new on this? 
+
+//If center is open, grab it
+//Else check if there is a 2 in a row situation to win the game
+//Else check if there is a 2 in a row situation that needs to be blocked
+//Else choose an available corner position not adjacent to the opponent outer position or a corner 
+//position diagonally opposite from the opponent outer position
+//Else choose an available corner position
+//Else choose an available position
+
           return { 
             row: 0, column: 0 
           }
@@ -128,9 +145,9 @@ $(function(){
           return [0,1,2,3,4,5,6,7,8].map(function(index) {
             return index2_row_col(index)
           })
-        },      
+        },
 
-        get: function(color) {
+        open_squares: function() { //color) {
 
           function index2_row_col(index) { // DRT now should be shared
             return {
@@ -140,7 +157,7 @@ $(function(){
           }
 
           var x = this.all_squares().filter(function(elem) {
-            return Board.is_equal(elem.row,elem.column,color)
+            return Board.is_equal(elem.row,elem.column,"") //color)
           })
           console.log("DRT 9.27.15")
           console.log(x)
@@ -295,19 +312,25 @@ $(function(){
             View.reset()
           }
           // check for 1 player game and if so then AI's moves
-          this.opponent_mark(this.get_board("Joker"),this.get_board("Batman"),this.get_board(""))
+          this.opponent_mark() //this.get_squares("Joker"),this.get_squares("Batman"),this.get_squares(""))
         }
         //this.get_board("Joker")
         //this.get_board("Batman")
         //this.get_board("")
       },
 
-      get_board: function(color) {
-        return Board.get(color)
+
+      open_squares: function() { 
+        return Board.open_squares() 
       },
       
-      opponent_mark: function(ai_squares, human_squares, open_squares) {
-        var move = Opponent.choose_square(ai_squares, human_squares, open_squares)
+      // returns an array of squares occupied by color, either "Batman", "Joker", or "" for open
+      get_square: function(row, column) {
+        return Board.get_cell(row, column)
+      },
+
+      opponent_mark: function() {
+        var move = Opponent.choose_square()
         console.log("Opponent row = "+move.row+"column ="+move.column)
       },
 
