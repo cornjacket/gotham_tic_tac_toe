@@ -76,11 +76,14 @@ $(function(){
               return GameController.is_square_open(elem.row,elem.column)
             })
             // there has to be one side open, so pick the first
+            this.number_of_turns +=1
             return {
               row: match[0].row,
               column: match[0].column
             }
-          }          
+          } else {
+            console.log("SKIPPING CORNER CASE")
+          }         
 
 //Else choose an available corner position not adjacent to the 
 // --oponent outer position or a corner position diagonally opposite 
@@ -314,6 +317,10 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
           this.is_first_time = false
         },  
 
+        select_square: function(row, column) {
+          return $("#r"+row+"_c"+column)
+        },
+
         render_square: function(e,attr,image) { 
           console.log("render invoked")         
 
@@ -412,23 +419,43 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
               draw = true
               alert("The game is a draw. Click OK to begin a new game")
           } else {
-              //if (this.two_player_game) { Game.next_player() }
               Game.next_player()
           }
           if (player_wins || draw) {
             Game.init()
             board.init()
+            Opponent.init()
             View.reset()
           } else {
           // check for 1 player game and if so then AI's moves
-          if (!two_player_game) {
-            joker_move = Opponent.choose_square()
-            console.log(joker_move)
-            joker = Game.current_player()
-            board.mark(joker_move.row, joker_move.column, joker)
-            Game.next_player()
-            // need to render square after selecting the square
-            // determine if winner
+            if (!this.two_player_game) {
+              joker_move = Opponent.choose_square()
+              console.log(joker_move)
+              current_player = Game.current_player()
+              board.mark(joker_move.row, joker_move.column, current_player)
+              View.render_square(
+                View.select_square(joker_move.row,joker_move.column),
+                Game.current_attr(),
+                Game.current_image()
+              )
+              winner = board.is_winner(current_player)
+              if (winner) {
+                player_wins = true
+                View.render_winner(winner)
+                alert(current_player+" wins. Click OK to begin a new game.")
+              } else if (board.is_full()) { // not possible since human has last move
+                draw = true
+                alert("The game is a draw. Click OK to begin a new game")
+              } else {
+                Game.next_player()
+              }
+              if (player_wins || draw) {
+                Game.init()
+                board.init()
+                Opponent.init()
+                View.reset()
+              }
+            }
           }
         }
 
@@ -439,7 +466,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
       // need View.select_square(row,column) => returns jQuery object
       // actually I can change render_square to now only accept the row and column
       // and not use the jQuery object any more but first lets implement select_square
-      
+
 
       // need check winner routine
 
@@ -457,9 +484,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
       },
 
       init: function() { 
-        Game.init()
-        
-        // where should this board reference be. is it global now? do I want that?
+        Game.init()        
         board = new Board()
         Opponent.init()
         View.init()
