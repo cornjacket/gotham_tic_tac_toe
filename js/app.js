@@ -203,7 +203,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
         mark: function(row, column, color) {
           //console.log("Board.prototype.mark invoked with "+row+", "+column+", "+color)
           //console.log(this.grid);
-          if (this.is_valid(row, column)) {
+          if (this.square_is_valid(row, column)) {
             this.set_cell(row, column, color)
             this.occupied_spaces += 1
             return true
@@ -211,7 +211,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
           return false
         },
         
-        is_valid: function(row, column) {
+        square_is_valid: function(row, column) {
           return this.is_equal(row, column, "")
         },
         
@@ -261,9 +261,9 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
 
           // this_boards_square points to the current instance of Board() but 
           // this_board.is_valid sounds lame so lets go with this_boards_square
-          var this_boards_square = this // 'this' is undefined inside inner function          
+          var this_boards = this // 'this' is undefined inside inner function          
           return this.all_squares().filter(function(elem) {
-            return this_boards_square.is_valid(elem.row,elem.column)
+            return this_boards.square_is_valid(elem.row,elem.column)
           })
 
         }
@@ -472,7 +472,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
       },
       
       is_square_open: function(row, column) {
-        return board.is_valid(row, column) // is_Valid should be changed to is_open
+        return board.square_is_valid(row, column) // is_Valid should be changed to is_open
       },
 
 // dont think this function is needed
