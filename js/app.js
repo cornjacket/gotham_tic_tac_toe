@@ -1,3 +1,5 @@
+"use strict"
+
 console.log("app is up")
 
 
@@ -8,43 +10,150 @@ $(function(){
 
     var Opponent = {
 
+        init: function() {
+          this.number_of_turns = 0; // keep track of which turn
+          this.joker_has_center = false;
+          console.log("Opponent.init invoked")
+        },
+
         choose_square: function() {
+          console.log("Opponent.choose_square invoked")
           
 // If I could somehow use a constructor to build a new Board for each open space and then iterate through
 // each board and check if_winner, then it could be really simple. like my Ruby chess game
+          var possible_moves = GameController.open_squares()
+          var match;
+          var corners;
+          var sides;
 
-// I could do the above with the AI piece to check for the win.
-// I could do the above with the human piece to check for a block.
+          // Check all remaining open squares to see if the Joker wins
+          console.log(possible_moves)
+          match = possible_moves.filter(function(elem) {
+            var board_copy = GameController.clone_board()
+            board_copy.mark(elem.row,elem.column,"Joker")
+            return board_copy.is_winner("Joker")
+          })
+          if (match.length != 0) {
+            console.log("Winner Found. Pick first")
+            this.number_of_turns += 1
+            return {
+              row:    match[0].row,
+              column: match[0].column
+            } 
+          }
+          // Check all remaining open squares to see if the Joker needs to
+          // block Batman from the win
+          console.log(possible_moves)
+          match = possible_moves.filter(function(elem) {
+            var board_copy = GameController.clone_board()
+            board_copy.mark(elem.row,elem.column,"Batman")
+            return board_copy.is_winner("Batman")
+          })
+          if (match.length != 0) {
+            console.log("Block Found. Pick first")
+            this.number_of_turns += 1
+            return {
+              row:    match[0].row,
+              column: match[0].column
+            } 
+          }
+          //If center is open, grab it
+          if (GameController.is_square_open(1,1)) {
+            console.log("Center Square Found.")
+            this.joker_has_center = true;
+            this.number_of_turns += 1
+            return {
+              row: 1,
+              column: 1
+            }
+          }
+          // handle case where joker has center space and batman goes for opposite corners
+          if (this.joker_has_center && this.number_of_turns === 1) {
+            sides = [ {row: 0, column: 1}, {row: 1, column: 0}, 
+                      {row: 1, column: 2}, {row: 2, column: 1}]
+            // pick a side
+            match = sides.filter(function (elem) {
+              return GameController.is_square_open(elem.row,elem.column)
+            })
+            // there has to be one side open, so pick the first
+            return {
+              row: match[0].row,
+              column: match[0].column
+            }
+          }          
 
-// can I call new on this? 
+//Else choose an available corner position not adjacent to the 
+// --oponent outer position or a corner position diagonally opposite 
+// --from the opponent outer position
 
-//If center is open, grab it
-//Else check if there is a 2 in a row situation to win the game
-//Else check if there is a 2 in a row situation that needs to be blocked
-//Else choose an available corner position not adjacent to the opponent outer position or a corner 
-//position diagonally opposite from the opponent outer position
-//Else choose an available corner position
-//Else choose an available position
-
-          return { 
-            row: 0, column: 0 
+          //Else choose an available corner position
+          corners = [ {row: 0, column: 0}, {row: 0, column: 2}, 
+                      {row: 2, column: 0}, {row: 2, column: 2}]
+          match = corners.filter(function(elem) {    
+            return GameController.is_square_open(elem.row,elem.column)
+          })
+          if (match.length != 0) {
+            console.log("Corner Found. Pick first")
+            this.number_of_turns += 1
+            return {
+              row:    match[0].row,
+              column: match[0].column
+            } 
+          }          
+          //Else choose first available position
+          this.number_of_turns += 1
+          return {
+            row:    possible_moves[0].row,
+            column: possible_moves[0].column
           }
         }
 
     }
 
 
-    var Board = {
+
+/* Encapsulation in JavaScript
+(The Best Object Creation Pattern: Combination Constructor/Prototype Pattern)
+http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
+*/
+
+//    var Board = {
+    function Board(init_ary) {  // = 
+
+      if (!init_ary) {
+        this.grid = ["", "", "", "", "", "", "", "", ""] // [0] -> top_left, [8] -> bottom_right
+        this.occupied_spaces = 0;
+      } else {
+        // allow to create a new board from input arg, may need to change argument
+        this.grid = init_ary.map(function(e) { return e } )
+        this.occupied_spaces = this.grid
+          .filter(function(elem) {
+            return elem !== ""
+          }).length;
+      }
+      console.log("Board constructor invoked")
+      console.log(this.grid)
+      console.log("occupied_spaces = "+this.occupied_spaces)
+    }
+
+    // setting the prototype using this literal notation requires that we explicityly
+    // set the constructor. Otherwise it will get overwritten.
+    Board.prototype = {
         
+        constructor: Board,
+
         init: function() {
-          this.board           = ["", "", "", "", "", "", "", "", ""] // [0] -> top_left, [8] -> bottom_right
-          this.occupied_spaces = 0
-          console.log("Board.init invoked")                    
+          this.grid = ["", "", "", "", "", "", "", "", ""] // [0] -> top_left, [8] -> bottom_right
+          this.occupied_spaces = 0          
+        },
+
+        clone: function() {
+          return new Board(this.grid)
         },
 
         // have is_winner return either false or else an array of the winning indices, this array is truthy
         is_winner: function(color) {
-          console.log("Board.is_winner invoked")
+          console.log("Board.prototype.is_winner invoked")
           var row;
           var col;
           var match;
@@ -58,7 +167,7 @@ $(function(){
               if (this.is_not_equal(row,col,color)) { match = false }
               else indices.push({row: row, column: col})
             }
-            if (match) { return indices } //true }
+            if (match) { return indices }
           }
           // check cols
           for (col=0; col<3; col+=1) {
@@ -68,7 +177,7 @@ $(function(){
               if (this.is_not_equal(row,col,color)) { match = false }
               else indices.push({row: row, column: col})
             }
-            if (match) { return indices } //true }
+            if (match) { return indices }
           }
           // check downward diagonal
           match = true;
@@ -78,7 +187,7 @@ $(function(){
             if (this.is_not_equal(row,col,color)) { match = false }
             else indices.push({row: row, column: col})
           }
-          if (match) { return indices } //true }
+          if (match) { return indices }
           // check upward diagonal
           match = true;
           indices = []
@@ -87,7 +196,7 @@ $(function(){
             if (this.is_not_equal(row,col,color)) { match = false }
             else indices.push({row: row, column: col})
           }
-          if (match) { return indices } //true }    
+          if (match) { return indices }
           return false;
         },
         
@@ -97,10 +206,9 @@ $(function(){
         },
         
         mark: function(row, column, color) {
-          console.log("Board.mark invoked with "+row+", "+column+", "+color)
-          console.log(this.board);
+          console.log("Board.prototype.mark invoked with "+row+", "+column+", "+color)
+          console.log(this.grid);
           if (this.is_valid(row, column)) {
-            console.log("this.is_valid")
             this.set_cell(row, column, color)
             this.occupied_spaces += 1
             return true
@@ -115,14 +223,14 @@ $(function(){
         set_cell: function(row, column, color) {
           var index = Number(row)*3 + Number(column)
           console.log("set_cell: index = "+index)
-          this.board[index] = color
-          console.log(this.board)
+          this.grid[index] = color
+          console.log(this.grid)
         },
         
         get_cell: function(row, column) {
           var index = Number(row)*3 + Number(column)
           //console.log("get_cell: index = "+index)
-          return this.board[index]
+          return this.grid[index]
         },
         
         is_equal: function(row, column, value) {
@@ -156,14 +264,10 @@ $(function(){
             }
           }
 
-          var x = this.all_squares().filter(function(elem) {
-            return Board.is_equal(elem.row,elem.column,"") //color)
+          var self = this // this is undefined inside this block. Dont understand why? DRT          
+          return this.all_squares().filter(function(elem) {
+            return self.is_valid(elem.row,elem.column)
           })
-          console.log("DRT 9.27.15")
-          console.log(x)
-
-
-          return x
 
         }
     };
@@ -281,8 +385,10 @@ $(function(){
 
     var GameController = {
       
+      // note board refees to the main board instance
+
       all_squares: function() {
-        return Board.all_squares()
+        return board.all_squares()
       },
 
       mark: function(e, row, column) {
@@ -291,56 +397,76 @@ $(function(){
         var player_wins = false
         var draw        = false
         var winner
+        var joker
+        var joker_move
 
-        if (Board.mark(row, column, current_player) ) {
+        if (board.mark(row, column, current_player) ) {
           View.render_square(e, Game.current_attr(), Game.current_image())
-          winner = Board.is_winner(current_player)
+          winner = board.is_winner(current_player)
           if (winner) {
             //console.log(winner)
             player_wins = true;
             View.render_winner(winner)
             alert(current_player+" wins. Click OK to begin a new game.")
-          } else if (Board.is_full()) {
+          } else if (board.is_full()) {
               draw = true
               alert("The game is a draw. Click OK to begin a new game")
           } else {
-              if (this.two_player_game) { Game.next_player() }
+              //if (this.two_player_game) { Game.next_player() }
+              Game.next_player()
           }
           if (player_wins || draw) {
             Game.init()
-            Board.init()
+            board.init()
             View.reset()
-          }
+          } else {
           // check for 1 player game and if so then AI's moves
-          this.opponent_mark() //this.get_squares("Joker"),this.get_squares("Batman"),this.get_squares(""))
+          if (!two_player_game) {
+            joker_move = Opponent.choose_square()
+            console.log(joker_move)
+            joker = Game.current_player()
+            board.mark(joker_move.row, joker_move.column, joker)
+            Game.next_player()
+            // need to render square after selecting the square
+            // determine if winner
+          }
         }
-        //this.get_board("Joker")
-        //this.get_board("Batman")
-        //this.get_board("")
+
       },
 
+      // make alert into View.game_over(game_is_won,player)
+
+      // need View.select_square(row,column) => returns jQuery object
+      // actually I can change render_square to now only accept the row and column
+      // and not use the jQuery object any more but first lets implement select_square
+      
+
+      // need check winner routine
 
       open_squares: function() { 
-        return Board.open_squares() 
+        return board.open_squares() 
       },
       
-      // returns an array of squares occupied by color, either "Batman", "Joker", or "" for open
-      get_square: function(row, column) {
-        return Board.get_cell(row, column)
+      is_square_open: function(row, column) {
+        return board.is_valid(row, column) // is_Valid should be changed to is_open
       },
 
-      opponent_mark: function() {
-        var move = Opponent.choose_square()
-        console.log("Opponent row = "+move.row+"column ="+move.column)
+
+      clone_board: function() {
+        return board.clone()
       },
 
       init: function() { 
         Game.init()
-        Board.init()
+        
+        // where should this board reference be. is it global now? do I want that?
+        board = new Board()
+        Opponent.init()
         View.init()
-        this.two_player_game = true; // change to false for AI
+        this.two_player_game = false; // change to false for AI
       }
     };
 
+    var board; // this is needed else an error is generated from board = new Board() above, why?
     GameController.init();
 });
