@@ -8,166 +8,169 @@ console.log("app is up")
 
 $(function(){
 
-    var Opponent = {
+  var Opponent = {
 
+    init: function() {         
+      this.joker_has_center = false;
+      //console.log("Opponent.init invoked")
+    },
 
-        init: function() {
-          this.number_of_turns = 0; // keep track of which turn
-          this.joker_has_center = false;
-          //console.log("Opponent.init invoked")
-        },
-
-        choose_square: function() {
-          //console.log("Opponent.choose_square invoked")
-
-          function canonical_distance(sq1, sq2) {
-            return Math.max(Math.abs(sq1.row-sq2.row),
-                            Math.abs(sq1.column-sq2.column))
-          }          
+    choose_square: function() {
+      //console.log("Opponent.choose_square invoked")
+      function canonical_distance(sq1, sq2) {
+        return Math.max(Math.abs(sq1.row-sq2.row),
+                        Math.abs(sq1.column-sq2.column))
+      }          
 // If I could somehow use a constructor to build a new Board for each open space and then iterate through
 // each board and check if_winner, then it could be really simple. like my Ruby chess game
-          var possible_moves = GameController.open_squares()
-          var joker_squares = GameController.joker_squares();
-          var match;
-          var corners;
-          var sides;
-          var valid_corners
-          var distance_sum
+      var possible_moves = GameController.open_squares()
+      var match;
+      //var corners;
+      var sides;
+      //var valid_corners
+      //var distance_sum
+      // Check all remaining open squares to see if the Joker wins
+      //console.log(possible_moves)
+      match = possible_moves.filter(function(elem) {
+        var board_copy = GameController.clone_board()
+        board_copy.mark(elem.row,elem.column,"Joker")
+        return board_copy.is_winner("Joker")
+      })
+      if (match.length != 0) {
+        //console.log("Winner Found. Pick first")
+        return {
+          row:    match[0].row,
+          column: match[0].column
+        } 
+      }
 
-          // Check all remaining open squares to see if the Joker wins
-          //console.log(possible_moves)
-          match = possible_moves.filter(function(elem) {
-            var board_copy = GameController.clone_board()
-            board_copy.mark(elem.row,elem.column,"Joker")
-            return board_copy.is_winner("Joker")
-          })
-          if (match.length != 0) {
-            //console.log("Winner Found. Pick first")
-            this.number_of_turns += 1
-            return {
-              row:    match[0].row,
-              column: match[0].column
-            } 
-          }
-          // Check all remaining open squares to see if the Joker needs to
-          // block Batman from the win
-          //console.log(possible_moves)
-          match = possible_moves.filter(function(elem) {
-            var board_copy = GameController.clone_board()
-            board_copy.mark(elem.row,elem.column,"Batman")
-            return board_copy.is_winner("Batman")
-          })
-          if (match.length != 0) {
-            //console.log("Block Found. Pick first")
-            this.number_of_turns += 1
-            return {
-              row:    match[0].row,
-              column: match[0].column
-            } 
-          }
-          //If center is open, grab it
-          if (GameController.is_square_open(1,1)) {
-            //console.log("Center Square Found.")
-            this.joker_has_center = true;
-            this.number_of_turns += 1
-            return {
-              row: 1,
-              column: 1
-            }
-          }
+      // Check all remaining open squares to see if the Joker needs to
+      // block Batman from the win
+      //console.log(possible_moves)
+      match = possible_moves.filter(function(elem) {
+        var board_copy = GameController.clone_board()
+        board_copy.mark(elem.row,elem.column,"Batman")
+        return board_copy.is_winner("Batman")
+      })
+      if (match.length != 0) {
+        //console.log("Block Found. Pick first")
+        return {
+          row:    match[0].row,
+          column: match[0].column
+        } 
+      }
+
+      //If center is open, grab it
+      if (GameController.is_square_open(1,1)) {
+        //console.log("Center Square Found.")
+        this.joker_has_center = true;
+        return {
+          row: 1,
+          column: 1
+        }
+      }
           
-          // go on the attack, see if you can force batman's move
-          // look if the next move will be 2 in a row with the next spot open
-          match = possible_moves.filter(function(elem) {
-          //match = [{row: 0, column: 0}].filter(function(elem) {
-            var board_copy = GameController.clone_board()
-            board_copy.mark(elem.row,elem.column,"Joker")
-            return board_copy.has_one_move_to_win("Joker")
-          })
-          //console.log("Opponent: On The Attack")
-          //console.log(match)
-          //console.log(possible_moves)
-          distance_sum = match.map(function(elem) {
-            console.log("JOKER squares")
-            console.log(joker_squares)
-            return joker_squares
-              .reduce(function(prev,cur,index,array) {
-                 return prev + canonical_distance(elem,cur)
-              }, 0)
-            })
-           console.log("Canonical matches")
-           console.log(match)
+////////////////////////////////////////////////////////////////
+// Let's check for potential doubles
+console.log("BEGIN *******************************************")
+      var board_copies_1_step = []
+      possible_moves.forEach(function(move) {
+        var board_copy = GameController.clone_board()
+        board_copy.mark(move.row,move.column,"Joker")
+        board_copies_1_step.push(board_copy)
+      }) 
+      console.log("possible moves")
+      console.log(possible_moves)
 
-          if (match.length != 0) {
-            console.log("Canonical Found. Pick first. NO PICK BEST")
-            console.log(distance_sum)
-            // find index of largest distance_sum, use that for match
-            var index = distance_sum.indexOf(Math.max.apply(Math, distance_sum))
-            console.log("best index = "+index)
-            this.number_of_turns += 1
-            return {
-              row:    match[index].row,
-              column: match[index].column
-            } 
-          }            
+console.log("WHAT IS THIS")
+console.log(board_copies_1_step)
 
-// not sure if the following is needed.
-// MAY WANT TO SKIP THIS
-          // handle case where joker has center space and batman goes for opposite corners
-          if (this.joker_has_center && this.number_of_turns === 1) {
-            sides = [ {row: 0, column: 1}, {row: 1, column: 0}, 
-                      {row: 1, column: 2}, {row: 2, column: 1}]
-            // pick a side
-            match = sides.filter(function (elem) {
-              return GameController.is_square_open(elem.row,elem.column)
-            })
-            // there has to be one side open, so pick the first
-            this.number_of_turns +=1
-            return {
-              row: match[0].row,
-              column: match[0].column
-            }
-          }        
-          //Else choose an available corner position
-          corners = [ {row: 0, column: 0}, {row: 0, column: 2}, 
-                      {row: 2, column: 0}, {row: 2, column: 2}]
-          match = corners.filter(function(elem) {    
-            return GameController.is_square_open(elem.row,elem.column)
-          })
-// lets sort the corners based on their batman_distance, higher is prefered
-          distance_sum = match.map(function(elem) {
-            console.log("BATMAN squares")
-            console.log(batman_squares)
-            return batman_squares
-              .reduce(function(prev,cur,index,array) {
-                 return prev + canonical_distance(elem,cur)
-              }, 0)
-            })
-           console.log("Canonical corners")
-           console.log(match)
-
-
-          if (match.length != 0) {
-            console.log("Corner Found. Pick first. NO PICK BEST")
-            console.log(distance_sum)
-            var index = distance_sum.indexOf(Math.max.apply(Math, distance_sum))
-            console.log("best index = "+index)
-            this.number_of_turns += 1
-            return {
-              row:    match[index].row,
-              column: match[index].column
-            } 
-          }          
-          //Else choose first available position
-          this.number_of_turns += 1
-          return {
-            row:    possible_moves[0].row,
-            column: possible_moves[0].column
-          }
+      var rejected_move_indices = [] // not sure
+      // at this point board_copies_1_step has a list of boards's with Jokers next moves
+      // iterate through board_copies_1_step
+      board_copies_1_step.forEach(function(board_copy_1_step,index,ary) {
+        console.log("Board copy 1 step index "+index)
+        console.log("grid")
+        console.log(board_copy_1_step)
+        var open_spaces_1_step = board_copy_1_step.open_squares()
+            
+        var joker_one_step_win = board_copy_1_step.has_one_move_to_win("Joker")
+        if (joker_one_step_win) {
+          console.log("Joker has one step win")
+          console.log(joker_one_step_win)
         }
 
-    }
+        // once we find a winner we can break out, we dont need a forEach here
+        open_spaces_1_step.forEach(function(open_space,index2,ary2) {
+          var num_of_wins = 0
+          var move_wins = []
+          var board_copy_2_step = board_copy_1_step.clone()
+          console.log("Inner loop: marking open space")
+          console.log(open_space)
+          board_copy_2_step.mark(open_space.row,open_space.column,"Batman")
+          var win = board_copy_2_step.has_one_move_to_win("Batman")            
+          if (win) {
+            num_of_wins = win.length
+            move_wins.push(win) // not needed
+            if (num_of_wins >= 2) {
+              console.log("Double found")
+              console.log("Win")
+              console.log(win)
+              console.log("Open Space ")
+              console.log(open_space)
+              rejected_move_indices.push(index) // not sure
+              console.log("Batmans moves")
+              console.log(move_wins)
+            }
+          }
 
+        })           
+
+
+      })
+
+      console.log("possible moves")
+      console.log(possible_moves)
+      console.log("Here are the bad indices")
+      console.log(rejected_move_indices)
+      // go through bad indices and remove from possible_moves
+      // if index of possible_moves element is not in rejected list, then it is included
+      var filtered_moves = possible_moves.filter(function(elem,index,ary) {
+        return rejected_move_indices.indexOf(index) === -1
+      })
+      console.log(filtered_moves)
+      // for now I can pick first if there are multiple entries here
+      // later i can look for better options, like go on the attack
+      if (filtered_moves.length > 0 && filtered_moves.length !== possible_moves.length) {
+        return filtered_moves[0]
+      }
+
+      // if we get here, then all filtered_moves were rejected and we need to
+      // find a move that puts Batman under attack
+      // for now a simple fix will be to just return first valid side
+      // as this works during testing
+      // maybe i can address this scenario later if this doesnt fix it.
+      // looks like this hack works
+      sides = [ {row: 0, column: 1}, {row: 1, column: 0}, 
+                {row: 1, column: 2}, {row: 2, column: 1}]
+      // pick a side
+      match = sides.filter(function (elem) {
+        return GameController.is_square_open(elem.row,elem.column)
+      })
+      console.log("there has to be one side open, so pick the first")
+console.log("END ***********************************************")
+
+      if (match.length > 0) {
+        return {
+          row: match[0].row,
+          column: match[0].column
+        }
+      }     
+      console.log("Last Resort just in case")
+      return possible_moves[0]
+
+     }
+  }
 
 /* Encapsulation in JavaScript
 (The Best Object Creation Pattern: Combination Constructor/Prototype Pattern)
@@ -208,8 +211,12 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
           return new Board(this.grid)
         },
       
+
+// nned to further research false value of empty array. does not seem straightforward      
         // will return false if not possible, otherwise will return the open space        
         has_one_move_to_win: function(color) {
+
+          var ret_value = []
           var color_count;
           var open_count; // other_color_count always is 3 - color - open
 
@@ -235,7 +242,8 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
             //console.log("row = "+row+"column = "+col+" color = "+color+"equal = "+
             //  this.is_equal(row,col,color)+"is_open = "+)
             if (color_count === 2 && open_count === 1) { 
-              return { row: open_row, column: open_col}
+              //return { row: open_row, column: open_col}
+              ret_value.push( { row: open_row, column: open_col} )
             }
           }
 
@@ -252,7 +260,8 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
               }
             }
             if (color_count === 2 && open_count === 1) { 
-              return { row: open_row, column: open_col}
+              //return { row: open_row, column: open_col}
+              ret_value.push( { row: open_row, column: open_col} )
             }
           }
 
@@ -269,7 +278,8 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
               }
           }
           if (color_count === 2 && open_count === 1) { 
-            return { row: open_row, column: open_col}
+            //return { row: open_row, column: open_col}
+            ret_value.push ( { row: open_row, column: open_col} )
           }
 
           // check upward diagonal
@@ -285,8 +295,10 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
               }
           }
           if (color_count === 2 && open_count === 1) { 
-            return { row: open_row, column: open_col}
+            //return { row: open_row, column: open_col}
+            ret_value.push ( { row: open_row, column: open_col} )
           }
+          if (ret_value.length > 0) return ret_value
           return false
         },
 
@@ -407,7 +419,8 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
             return this_boards.square_is_equal(elem.row,elem.column,color)
           })
 
-        }
+        },
+
 
     };
 
@@ -637,10 +650,6 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
 
       clone_board: function() {
         return board.clone()
-      },
-
-      joker_squares: function() {
-        return board.filter_squares("Joker")
       },
 
       init: function() { 
