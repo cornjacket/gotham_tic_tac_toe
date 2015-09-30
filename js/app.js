@@ -10,6 +10,7 @@ $(function(){
 
     var Opponent = {
 
+
         init: function() {
           this.number_of_turns = 0; // keep track of which turn
           this.joker_has_center = false;
@@ -18,13 +19,20 @@ $(function(){
 
         choose_square: function() {
           //console.log("Opponent.choose_square invoked")
-          
+
+          function canonical_distance(sq1, sq2) {
+            return Math.max(Math.abs(sq1.row-sq2.row),
+                            Math.abs(sq1.column-sq2.column))
+          }          
 // If I could somehow use a constructor to build a new Board for each open space and then iterate through
 // each board and check if_winner, then it could be really simple. like my Ruby chess game
           var possible_moves = GameController.open_squares()
+          var joker_squares = GameController.joker_squares();
           var match;
           var corners;
           var sides;
+          var valid_corners
+          var distance_sum
 
           // Check all remaining open squares to see if the Joker wins
           //console.log(possible_moves)
@@ -67,6 +75,44 @@ $(function(){
               column: 1
             }
           }
+          
+          // go on the attack, see if you can force batman's move
+          // look if the next move will be 2 in a row with the next spot open
+          match = possible_moves.filter(function(elem) {
+          //match = [{row: 0, column: 0}].filter(function(elem) {
+            var board_copy = GameController.clone_board()
+            board_copy.mark(elem.row,elem.column,"Joker")
+            return board_copy.has_one_move_to_win("Joker")
+          })
+          //console.log("Opponent: On The Attack")
+          //console.log(match)
+          //console.log(possible_moves)
+          distance_sum = match.map(function(elem) {
+            console.log("JOKER squares")
+            console.log(joker_squares)
+            return joker_squares
+              .reduce(function(prev,cur,index,array) {
+                 return prev + canonical_distance(elem,cur)
+              }, 0)
+            })
+           console.log("Canonical matches")
+           console.log(match)
+
+          if (match.length != 0) {
+            console.log("Canonical Found. Pick first. NO PICK BEST")
+            console.log(distance_sum)
+            // find index of largest distance_sum, use that for match
+            var index = distance_sum.indexOf(Math.max.apply(Math, distance_sum))
+            console.log("best index = "+index)
+            this.number_of_turns += 1
+            return {
+              row:    match[index].row,
+              column: match[index].column
+            } 
+          }            
+
+// not sure if the following is needed.
+// MAY WANT TO SKIP THIS
           // handle case where joker has center space and batman goes for opposite corners
           if (this.joker_has_center && this.number_of_turns === 1) {
             sides = [ {row: 0, column: 1}, {row: 1, column: 0}, 
@@ -88,12 +134,28 @@ $(function(){
           match = corners.filter(function(elem) {    
             return GameController.is_square_open(elem.row,elem.column)
           })
+// lets sort the corners based on their batman_distance, higher is prefered
+          distance_sum = match.map(function(elem) {
+            console.log("BATMAN squares")
+            console.log(batman_squares)
+            return batman_squares
+              .reduce(function(prev,cur,index,array) {
+                 return prev + canonical_distance(elem,cur)
+              }, 0)
+            })
+           console.log("Canonical corners")
+           console.log(match)
+
+
           if (match.length != 0) {
-            //console.log("Corner Found. Pick first")
+            console.log("Corner Found. Pick first. NO PICK BEST")
+            console.log(distance_sum)
+            var index = distance_sum.indexOf(Math.max.apply(Math, distance_sum))
+            console.log("best index = "+index)
             this.number_of_turns += 1
             return {
-              row:    match[0].row,
-              column: match[0].column
+              row:    match[index].row,
+              column: match[index].column
             } 
           }          
           //Else choose first available position
@@ -145,8 +207,90 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
         clone: function() {
           return new Board(this.grid)
         },
+      
+        // will return false if not possible, otherwise will return the open space        
+        has_one_move_to_win: function(color) {
+          var color_count;
+          var open_count; // other_color_count always is 3 - color - open
 
-        // have is_winner return either false or else an array of the winning indices, this array is truthy
+          // go through all the rows and do a count
+          var row;
+          var col;
+
+          var open_row
+          var open_col
+
+          //check rows
+          for (row=0; row<3; row+=1) {
+            color_count = 0
+            open_count  = 0
+            for (col=0; col<3; col+=1) {
+              if (this.square_is_equal(row,col,color)) color_count += 1
+              else if (this.square_is_valid(row,col)) {
+                open_count += 1
+                open_row    = row
+                open_col    = col
+              }
+            }
+            //console.log("row = "+row+"column = "+col+" color = "+color+"equal = "+
+            //  this.is_equal(row,col,color)+"is_open = "+)
+            if (color_count === 2 && open_count === 1) { 
+              return { row: open_row, column: open_col}
+            }
+          }
+
+          //check columns
+          for (col=0; col<3; col+=1) {
+            color_count = 0
+            open_count  = 0
+            for (row=0; row<3; row+=1) {
+              if (this.square_is_equal(row,col,color)) color_count += 1
+                else if (this.square_is_valid(row,col)) {
+                open_count += 1
+                open_row    = row
+                open_col    = col
+              }
+            }
+            if (color_count === 2 && open_count === 1) { 
+              return { row: open_row, column: open_col}
+            }
+          }
+
+          // check downward diagonal
+          color_count = 0
+          open_count  = 0
+          for (row=0; row<3; row+=1) {
+            col=row;
+              if (this.square_is_equal(row,col,color)) color_count += 1
+              else if (this.square_is_valid(row,col)) {
+                open_count += 1
+                open_row    = row
+                open_col    = col
+              }
+          }
+          if (color_count === 2 && open_count === 1) { 
+            return { row: open_row, column: open_col}
+          }
+
+          // check upward diagonal
+          color_count = 0
+          open_count  = 0
+          for (row=0; row<3; row+=1) {
+            col=2-row;
+              if (this.square_is_equal(row,col,color)) color_count += 1
+              else if (this.square_is_valid(row,col)) {
+                open_count += 1
+                open_row    = row
+                open_col    = col
+              }
+          }
+          if (color_count === 2 && open_count === 1) { 
+            return { row: open_row, column: open_col}
+          }
+          return false
+        },
+
+        // is_winner returns either false or else an array of the winning indices, this array is truthy
         is_winner: function(color) {
           //console.log("Board.prototype.is_winner invoked")
           var row;
@@ -159,7 +303,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
             match = true;
             indices = []
             for (col=0; col<3; col+=1) {
-              if (this.is_not_equal(row,col,color)) { match = false }
+              if (this.square_is_not_equal(row,col,color)) { match = false }
               else indices.push({row: row, column: col})
             }
             if (match) { return indices }
@@ -169,7 +313,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
             match = true;
             indices = []
             for (row=0; row<3; row+=1) {
-              if (this.is_not_equal(row,col,color)) { match = false }
+              if (this.square_is_not_equal(row,col,color)) { match = false }
               else indices.push({row: row, column: col})
             }
             if (match) { return indices }
@@ -179,7 +323,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
           indices = []
           for (row=0; row<3; row+=1) {
             col=row;
-            if (this.is_not_equal(row,col,color)) { match = false }
+            if (this.square_is_not_equal(row,col,color)) { match = false }
             else indices.push({row: row, column: col})
           }
           if (match) { return indices }
@@ -188,7 +332,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
           indices = []
           for (row=0; row<3; row+=1) {
             col=2-row;
-            if (this.is_not_equal(row,col,color)) { match = false }
+            if (this.square_is_not_equal(row,col,color)) { match = false }
             else indices.push({row: row, column: col})
           }
           if (match) { return indices }
@@ -202,7 +346,6 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
         
         mark: function(row, column, color) {
           //console.log("Board.prototype.mark invoked with "+row+", "+column+", "+color)
-          //console.log(this.grid);
           if (this.square_is_valid(row, column)) {
             this.set_cell(row, column, color)
             this.occupied_spaces += 1
@@ -212,7 +355,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
         },
         
         square_is_valid: function(row, column) {
-          return this.is_equal(row, column, "")
+          return this.square_is_equal(row, column, "")
         },
         
         set_cell: function(row, column, color) {
@@ -228,11 +371,11 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
           return this.grid[index]
         },
         
-        is_equal: function(row, column, value) {
+        square_is_equal: function(row, column, value) {
           return this.get_cell(row, column) === value
         },
         
-        is_not_equal: function(row, column, value) {
+        square_is_not_equal: function(row, column, value) {
           return this.get_cell(row, column) !== value
         },
 
@@ -251,22 +394,21 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
         },
 
         open_squares: function() {
+          return this.filter_squares("")
 
-          function index2_row_col(index) { // DRT now should be shared
-            return {
-            row:    Math.floor(index / 3),
-            column: (index % 3)
-            }
-          }
+        },
 
-          // this_boards_square points to the current instance of Board() but 
-          // this_board.is_valid sounds lame so lets go with this_boards_square
-          var this_boards = this // 'this' is undefined inside inner function          
+
+        // provide a general mechanism for the opponent to select possible moves
+        filter_squares: function(color) {
+      
+          var this_boards = this
           return this.all_squares().filter(function(elem) {
-            return this_boards.square_is_valid(elem.row,elem.column)
+            return this_boards.square_is_equal(elem.row,elem.column,color)
           })
 
         }
+
     };
 
 
@@ -375,14 +517,24 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
          this.current_player_index = (this.current_player_index + 1) % 2
        },      
        
+
        init: function() { 
          this.pieces = ["Batman", "Joker"] // Batman, Joker
          // not sure if image and attr should be inside of game. more of a view thing unless it 
          // can be changed, ie selected by the user
+         /*
+         this.images = ["https://d13yacurqjgara.cloudfront.net/users/121576/screenshots/1111290/batman_logo_final.png", 
+                        "https://s-media-cache-ak0.pinimg.com/236x/aa/6e/8d/aa6e8d0ba1ee3a0fea3df7c7d5b00f6b.jpg"]
+         this.attr   = ["class='circle'", ""] // batman is a circle, jocker is a square
+         */
+         
          this.images = ["images/batman_logo_final.png", "images/aa6e8d0ba1ee3a0fea3df7c7d5b00f6b.jpg"]
          this.attr   = ["class='circle'", ""] // batman is a circle, jocker is a square
+         
          this.current_player_index = 0
        }
+
+
     };
 
     var GameController = {
@@ -475,7 +627,6 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
         return board.square_is_valid(row, column) // is_Valid should be changed to is_open
       },
 
-// dont think this function is needed
       is_humans_turn: function() {
         if (this.is_a_two_player_game) {
           return true
@@ -486,6 +637,10 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
 
       clone_board: function() {
         return board.clone()
+      },
+
+      joker_squares: function() {
+        return board.filter_squares("Joker")
       },
 
       init: function() { 
