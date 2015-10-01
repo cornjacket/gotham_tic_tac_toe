@@ -12,23 +12,20 @@ $(function(){
 
     init: function() {         
       this.joker_has_center = false;
+      this.is_first_turn    = true;
       //console.log("Opponent.init invoked")
     },
 
     choose_square: function() {
       //console.log("Opponent.choose_square invoked")
+      // this can be removed
       function canonical_distance(sq1, sq2) {
         return Math.max(Math.abs(sq1.row-sq2.row),
                         Math.abs(sq1.column-sq2.column))
       }          
-// If I could somehow use a constructor to build a new Board for each open space and then iterate through
-// each board and check if_winner, then it could be really simple. like my Ruby chess game
       var possible_moves = GameController.open_squares()
       var match;
-      //var corners;
       var sides;
-      //var valid_corners
-      //var distance_sum
       // Check all remaining open squares to see if the Joker wins
       //console.log(possible_moves)
       match = possible_moves.filter(function(elem) {
@@ -38,6 +35,7 @@ $(function(){
       })
       if (match.length != 0) {
         //console.log("Winner Found. Pick first")
+        this.is_first_turn = false
         return {
           row:    match[0].row,
           column: match[0].column
@@ -54,6 +52,7 @@ $(function(){
       })
       if (match.length != 0) {
         //console.log("Block Found. Pick first")
+        this.is_first_turn = false
         return {
           row:    match[0].row,
           column: match[0].column
@@ -64,27 +63,32 @@ $(function(){
       if (GameController.is_square_open(1,1)) {
         //console.log("Center Square Found.")
         this.joker_has_center = true;
+        this.is_first_turn    = false
         return {
           row: 1,
           column: 1
         }
       }
-          
-////////////////////////////////////////////////////////////////
-// Let's check for potential doubles
-console.log("BEGIN *******************************************")
+
+      // if center belongs to batman and this is first turn
+      // then grab first corner
+      var first_corner = {row: 0, column: 0}
+      if (this.is_first_turn && this.is_first_turn) {
+        this.is_first_turn = false
+        return first_corner
+      }
+
+      this.is_first_turn = false
+      console.log("Let's check for potential doubles")
       var board_copies_1_step = []
       possible_moves.forEach(function(move) {
         var board_copy = GameController.clone_board()
         board_copy.mark(move.row,move.column,"Joker")
         board_copies_1_step.push(board_copy)
       }) 
-      console.log("possible moves")
-      console.log(possible_moves)
-
-console.log("WHAT IS THIS")
-console.log(board_copies_1_step)
-
+      //console.log("possible moves")
+      //console.log(possible_moves)
+      //console.log(board_copies_1_step)
       var rejected_move_indices = [] // not sure
       // at this point board_copies_1_step has a list of boards's with Jokers next moves
       // iterate through board_copies_1_step
@@ -99,7 +103,6 @@ console.log(board_copies_1_step)
           console.log("Joker has one step win")
           console.log(joker_one_step_win)
         }
-
         // once we find a winner we can break out, we dont need a forEach here
         open_spaces_1_step.forEach(function(open_space,index2,ary2) {
           var num_of_wins = 0
@@ -114,59 +117,53 @@ console.log(board_copies_1_step)
             move_wins.push(win) // not needed
             if (num_of_wins >= 2) {
               console.log("Double found")
-              console.log("Win")
-              console.log(win)
-              console.log("Open Space ")
-              console.log(open_space)
+              //console.log("Win")
+              //console.log(win)
+              //console.log("Open Space ")
+              //console.log(open_space)
               rejected_move_indices.push(index) // not sure
-              console.log("Batmans moves")
-              console.log(move_wins)
+              //console.log("Batmans moves")
+              //console.log(move_wins)
             }
           }
 
         })           
-
-
       })
-
-      console.log("possible moves")
-      console.log(possible_moves)
-      console.log("Here are the bad indices")
-      console.log(rejected_move_indices)
+      //console.log("possible moves")
+      //console.log(possible_moves)
+      //console.log("Here are the bad indices")
+      //console.log(rejected_move_indices)
       // go through bad indices and remove from possible_moves
       // if index of possible_moves element is not in rejected list, then it is included
       var filtered_moves = possible_moves.filter(function(elem,index,ary) {
         return rejected_move_indices.indexOf(index) === -1
       })
-      console.log(filtered_moves)
+      //console.log(filtered_moves)
       // for now I can pick first if there are multiple entries here
-      // later i can look for better options, like go on the attack
+      // maybe later i can look for optimal options, like go on the attack
       if (filtered_moves.length > 0 && filtered_moves.length !== possible_moves.length) {
         return filtered_moves[0]
       }
-
-      // if we get here, then all filtered_moves were rejected and we need to
-      // find a move that puts Batman under attack
+      // if we get here, then all filtered_moves were rejected and we need
+      // to find a move that puts Batman under attack
       // for now a simple fix will be to just return first valid side
       // as this works during testing
       // maybe i can address this scenario later if this doesnt fix it.
-      // looks like this hack works
+      // but it looks like this hack works
       sides = [ {row: 0, column: 1}, {row: 1, column: 0}, 
                 {row: 1, column: 2}, {row: 2, column: 1}]
       // pick a side
       match = sides.filter(function (elem) {
         return GameController.is_square_open(elem.row,elem.column)
       })
-      console.log("there has to be one side open, so pick the first")
-console.log("END ***********************************************")
-
+      //console.log("there has to be one side open, so pick the first")
       if (match.length > 0) {
         return {
           row: match[0].row,
           column: match[0].column
         }
       }     
-      console.log("Last Resort just in case")
+      ///console.log("Last Resort just in case")
       return possible_moves[0]
 
      }
@@ -211,8 +208,6 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
           return new Board(this.grid)
         },
       
-
-// nned to further research false value of empty array. does not seem straightforward      
         // will return false if not possible, otherwise will return the open space        
         has_one_move_to_win: function(color) {
 
@@ -393,7 +388,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
 
         all_squares: function() {
 
-          function index2_row_col(index) {  // DRT - now should be shared
+          function index2_row_col(index) { 
             return {
             row:    Math.floor(index / 3),
             column: (index % 3)
@@ -407,9 +402,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
 
         open_squares: function() {
           return this.filter_squares("")
-
         },
-
 
         // provide a general mechanism for the opponent to select possible moves
         filter_squares: function(color) {
@@ -421,8 +414,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
 
         },
 
-
-    };
+    }
 
 
     var View = {
@@ -476,7 +468,6 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
 
         render_square: function(e,attr,image) { 
           //console.log("render invoked")         
-
           // if image is not given, then an empty square will be returned and that is ok
           var template = function(attr,image) {
             var html_template = "";
@@ -485,13 +476,11 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
             html_template += "</div>"
             return html_template
           }           
-          
           $(e).empty(); // referring to the jQuery this object
           $(e).append(template(attr,image));
         },
 
         render_winner: function(winner_ary) {
-
           // Array.prototype.indexOf does not work with objects so we use this deep indexOf
           // http://stackoverflow.com/questions/8668174/indexof-method-in-an-object-array
           function arrayObjIndexOf(ary, elem) {
@@ -510,7 +499,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
           })
         }
              
-    };
+    }
 
     var Game = {
        
@@ -535,20 +524,18 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
          this.pieces = ["Batman", "Joker"] // Batman, Joker
          // not sure if image and attr should be inside of game. more of a view thing unless it 
          // can be changed, ie selected by the user
-         /*
+         
          this.images = ["https://d13yacurqjgara.cloudfront.net/users/121576/screenshots/1111290/batman_logo_final.png", 
                         "https://s-media-cache-ak0.pinimg.com/236x/aa/6e/8d/aa6e8d0ba1ee3a0fea3df7c7d5b00f6b.jpg"]
          this.attr   = ["class='circle'", ""] // batman is a circle, jocker is a square
+                  
+         /*this.images = ["images/batman_logo_final.png", "images/aa6e8d0ba1ee3a0fea3df7c7d5b00f6b.jpg"]
+         this.attr   = ["class='circle'", ""] // batman is a circle, jocker is a square         
          */
-         
-         this.images = ["images/batman_logo_final.png", "images/aa6e8d0ba1ee3a0fea3df7c7d5b00f6b.jpg"]
-         this.attr   = ["class='circle'", ""] // batman is a circle, jocker is a square
-         
          this.current_player_index = 0
        }
 
-
-    };
+    }
 
     var GameController = {
       
@@ -623,14 +610,7 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
 
       },
 
-      // make alert into View.game_over(game_is_won,player)
 
-      // need View.select_square(row,column) => returns jQuery object
-      // actually I can change render_square to now only accept the row and column
-      // and not use the jQuery object any more but first lets implement select_square
-
-
-      // need check winner routine
 
       open_squares: function() { 
         return board.open_squares() 
@@ -652,15 +632,21 @@ http://javascriptissexy.com/oop-in-javascript-what-you-need-to-know/
         return board.clone()
       },
 
+      batman_has_center: function() {
+        return board.square_is_equal(1,1,"Batman")
+      },
+
       init: function() { 
         Game.init()        
         board = new Board()
         Opponent.init()
         View.init()
-        this.is_a_two_player_game = false // change to false for AI
+        this.is_a_two_player_game = false // changed to false for AI
       }
     };
 
-    var board; // this is needed else an error is generated from board = new Board() above, why?
+    // need option for 2player game
+
+    var board;
     GameController.init();
 });
