@@ -13,16 +13,17 @@ $(function(){
     init: function() {         
       this.joker_has_center = false;
       this.is_first_turn    = true;
+      this.turn = 0
       //console.log("Opponent.init invoked")
     },
 
     choose_square: function() {
       //console.log("Opponent.choose_square invoked")
       // this can be removed
-      function canonical_distance(sq1, sq2) {
+      /*function canonical_distance(sq1, sq2) {
         return Math.max(Math.abs(sq1.row-sq2.row),
                         Math.abs(sq1.column-sq2.column))
-      }          
+      } */         
       var possible_moves = GameController.open_squares()
       var match;
       var sides;
@@ -36,12 +37,13 @@ $(function(){
       if (match.length != 0) {
         //console.log("Winner Found. Pick first")
         this.is_first_turn = false
+        console.log("turn_no = "+this.turn+" is_winner_joker")
+        this.turn += 1
         return {
           row:    match[0].row,
           column: match[0].column
         } 
       }
-
       // Check all remaining open squares to see if the Joker needs to
       // block Batman from the win
       //console.log(possible_moves)
@@ -53,32 +55,37 @@ $(function(){
       if (match.length != 0) {
         //console.log("Block Found. Pick first")
         this.is_first_turn = false
+        console.log("turn_no = "+this.turn+" is_winner_batman")
+        this.turn += 1        
         return {
           row:    match[0].row,
           column: match[0].column
         } 
       }
-
       //If center is open, grab it
       if (GameController.is_square_open(1,1)) {
         //console.log("Center Square Found.")
         this.joker_has_center = true;
         this.is_first_turn    = false
+        console.log("turn_no = "+this.turn+" is_center_open")
+        this.turn += 1        
         return {
           row: 1,
           column: 1
         }
       }
-
       // if center belongs to batman and this is first turn
       // then grab first corner
       var first_corner = {row: 0, column: 0}
-      if (this.is_first_turn && this.is_first_turn) {
+      if (this.is_first_turn && GameController.batman_has_center()) {
+        this.is_first_turn = false
+        console.log("turn_no = "+this.turn+" batman_has_centerr")
+        this.turn += 1        
         this.is_first_turn = false
         return first_corner
       }
-
       this.is_first_turn = false
+
       console.log("Let's check for potential doubles")
       var board_copies_1_step = []
       possible_moves.forEach(function(move) {
@@ -93,8 +100,8 @@ $(function(){
       // at this point board_copies_1_step has a list of boards's with Jokers next moves
       // iterate through board_copies_1_step
       board_copies_1_step.forEach(function(board_copy_1_step,index,ary) {
-        console.log("Board copy 1 step index "+index)
-        console.log("grid")
+        console.log("Board copy 1 step index "+index+" corresponding to Joker move "
+                    +possible_moves[index].row+", "+possible_moves[index].column)
         console.log(board_copy_1_step)
         var open_spaces_1_step = board_copy_1_step.open_squares()
             
@@ -102,6 +109,7 @@ $(function(){
         if (joker_one_step_win) {
           console.log("Joker has one step win")
           console.log(joker_one_step_win)
+          // why aren't I doing something with this info
         }
         // once we find a winner we can break out, we dont need a forEach here
         open_spaces_1_step.forEach(function(open_space,index2,ary2) {
@@ -141,9 +149,23 @@ $(function(){
       //console.log(filtered_moves)
       // for now I can pick first if there are multiple entries here
       // maybe later i can look for optimal options, like go on the attack
+      // looking for at least one non-rejected item, but if none are rejected then we
+      // skip this and grab a side.
+
+
+////////////////////////////
+
+
+// DRT SURE THE REASON FOR THE filter.length !== pssible.length ??? Need to look at later
+
+
+//////////////////////////
+
+
       if (filtered_moves.length > 0 && filtered_moves.length !== possible_moves.length) {
         return filtered_moves[0]
       }
+      console.log("Opponent: There are no 2step moves for Joker")
       // if we get here, then all filtered_moves were rejected and we need
       // to find a move that puts Batman under attack
       // for now a simple fix will be to just return first valid side
@@ -163,7 +185,8 @@ $(function(){
           column: match[0].column
         }
       }     
-      ///console.log("Last Resort just in case")
+      console.log("Opponent: Last Resort move is "+possible_moves[0].row+
+                  " , "+possible_moves[0].column)
       return possible_moves[0]
 
      }
